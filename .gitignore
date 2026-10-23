@@ -1,0 +1,12 @@
+
+# CodeValid — auto-added
+node_modules/
+dist/
+build/
+coverage/
+.next/
+out/
+.turbo/
+__pycache__/
+.pytest_cache/
+.venv/
