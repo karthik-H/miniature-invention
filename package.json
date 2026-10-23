@@ -1,0 +1,12 @@
+{
+  "name": "miniature-invention",
+  "version": "1.0.0",
+  "description": "Minimal backend service",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
