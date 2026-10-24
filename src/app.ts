@@ -72,6 +72,13 @@ function requireAuth(req: Request, res: Response, next: NextFunction): void {
   }
 }
 
+app.get("/auth/me", requireAuth, (req, res) => {
+  const header = req.header("authorization") ?? "";
+  const payload = verifyToken(header.replace(/^Bearer\s+/i, ""));
+  const user = findUserById(payload.sub);
+  res.json({ user: user ? toPublicUser(user) : null });
+});
+
 app.post("/products", requireAuth, (req, res) => {
   const input = readProductInput(req.body);
   if ("error" in input) {
