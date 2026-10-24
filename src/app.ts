@@ -3,7 +3,6 @@ import { signToken, verifyPassword, hashPassword, verifyToken } from "./auth";
 import {
   createProduct,
   createUser,
-  findProductById,
   findProductBySku,
   findUserByEmail,
   findUserById,
@@ -86,16 +85,7 @@ app.post("/products", requireAuth, (req, res) => {
 });
 
 app.get("/products", (_req, res) => {
-  res.json({ products: listProducts() });
-});
-
-app.get("/products/:id", (req, res) => {
-  const product = findProductById(req.params.id);
-  if (!product) {
-    res.status(404).json({ error: "Product not found" });
-    return;
-  }
-  res.json(product);
+  res.json({ items: listProducts() });
 });
 
 app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
