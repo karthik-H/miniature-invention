@@ -1,3 +1,4 @@
+// Ecommerce API: routes for accounts and the product catalog.
 import express, { type NextFunction, type Request, type Response } from "express";
 import { signToken, verifyPassword, hashPassword, verifyToken } from "./auth";
 import {
