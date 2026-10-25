@@ -124,5 +124,47 @@ cv_product_payload() {
   jq -nc --arg s "$1" '{name:("CV Product " + $s), description:"CodeValid test product", priceCents:1999, sku:$s}'
 }
 
+# cv_login_user <email> <password> -> sets CV_TOKEN (fails on non-200)
+cv_login_user() {
+  cv_prereq "sign in customer $1 via POST /auth/login" "${LINENO}"
+  cv_http POST /auth/login "$(jq -nc --arg e "$1" --arg p "$2" '{email:$e,password:$p}')"
+  if [ "$CV_HTTP_STATUS" != "200" ]; then
+    cv_fail "expected 200 signing in $1 got $CV_HTTP_STATUS: $CV_HTTP_BODY" "${LINENO}"
+  fi
+  CV_TOKEN=$(printf '%s' "$CV_HTTP_BODY" | jq -r '.token // empty')
+  [ -n "$CV_TOKEN" ] || cv_fail "expected token in login response got: $CV_HTTP_BODY" "${LINENO}"
+  export CV_TOKEN
+}
+
+# JWT secret the app runs with in the test stack (.codevalid/docker-compose.yml JWT_SECRET)
+export CV_JWT_SECRET="${CV_JWT_SECRET:-codevalid-test-jwt-secret}"
+_cv_b64url() { base64 -w0 | tr '+/' '-_' | tr -d '='; }
+# _cv_hex_to_esc <hex> -> printf escape string (\xNN...)
+_cv_hex_to_esc() { printf '%s' "$1" | sed 's/../\\x&/g'; }
+# _cv_hmac_sha256_bin <key> <message> -> raw HMAC-SHA256 bytes on stdout (coreutils only)
+_cv_hmac_sha256_bin() {
+  _cv_khex=$(printf '%s' "$1" | od -An -v -tx1 | tr -d ' \n')
+  if [ ${#_cv_khex} -gt 128 ]; then
+    _cv_khex=$(printf '%s' "$1" | sha256sum | cut -c1-64)
+  fi
+  while [ ${#_cv_khex} -lt 128 ]; do _cv_khex="${_cv_khex}00"; done
+  _cv_ipad=''; _cv_opad=''
+  for ((_cv_i = 0; _cv_i < 128; _cv_i += 2)); do
+    _cv_b=$((16#${_cv_khex:_cv_i:2}))
+    _cv_ipad+=$(printf '%02x' $((_cv_b ^ 0x36)))
+    _cv_opad+=$(printf '%02x' $((_cv_b ^ 0x5c)))
+  done
+  _cv_inner=$({ printf "$(_cv_hex_to_esc "$_cv_ipad")"; printf '%s' "$2"; } | sha256sum | cut -c1-64)
+  _cv_outer=$(printf "$(_cv_hex_to_esc "${_cv_opad}${_cv_inner}")" | sha256sum | cut -c1-64)
+  printf "$(_cv_hex_to_esc "$_cv_outer")"
+}
+# cv_mint_jwt <payload-json> [secret] -> prints an HS256 JWT signed like the app's tokens
+cv_mint_jwt() {
+  _cv_h=$(printf '%s' '{"alg":"HS256","typ":"JWT"}' | _cv_b64url)
+  _cv_p=$(printf '%s' "$1" | _cv_b64url)
+  _cv_sig=$(_cv_hmac_sha256_bin "${2:-$CV_JWT_SECRET}" "$_cv_h.$_cv_p" | _cv_b64url)
+  printf '%s.%s.%s' "$_cv_h" "$_cv_p" "$_cv_sig"
+}
+
 # The app keeps users/products in memory and exposes no delete endpoint; data resets on stack restart.
 cv_cleanup_note() { echo "cleanup: app store is in-memory with no delete endpoint; created data ($*) resets with the stack"; }
