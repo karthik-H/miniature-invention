@@ -24,17 +24,17 @@ ANON_STATUS=$CV_HTTP_STATUS; ANON_BODY=$CV_HTTP_BODY
 cv_step Then "authenticated response is 200 and contains the same public catalog as the anonymous one" $LINENO
 [ "$AUTH_STATUS" = "200" ] || cv_fail "expected HTTP 200 for authenticated GET /products got $AUTH_STATUS" $LINENO
 [ "$ANON_STATUS" = "200" ] || cv_fail "expected HTTP 200 for anonymous GET /products got $ANON_STATUS" $LINENO
-TYPE=$(printf '%s' "$AUTH_BODY" | jq -r '.products | type' 2>/dev/null || echo invalid)
-[ "$TYPE" = "array" ] || cv_fail "expected .products to be an array got $TYPE" $LINENO
-GOT=$(printf '%s' "$AUTH_BODY" | jq -c --arg id "$P_ID" '[.products[] | select(.id==$id)][0] // null')
+TYPE=$(printf '%s' "$AUTH_BODY" | jq -r '.items | type' 2>/dev/null || echo invalid)
+[ "$TYPE" = "array" ] || cv_fail "expected .items to be an array got $TYPE" $LINENO
+GOT=$(printf '%s' "$AUTH_BODY" | jq -c --arg id "$P_ID" '[.items[] | select(.id==$id)][0] // null')
 SAME=$(jq -n --argjson a "$GOT" --argjson b "$P_JSON" \
   '$a != null and (($a|{id,name,description,priceCents,sku,createdAt}) == ($b|{id,name,description,priceCents,sku,createdAt}))')
 [ "$SAME" = "true" ] || cv_fail "expected authenticated catalog to contain product $P_JSON got $GOT" $LINENO
-AUTH_SORTED=$(printf '%s' "$AUTH_BODY" | jq -cS '.products | sort_by(.id)')
-ANON_SORTED=$(printf '%s' "$ANON_BODY" | jq -cS '.products | sort_by(.id)')
+AUTH_SORTED=$(printf '%s' "$AUTH_BODY" | jq -cS '.items | sort_by(.id)')
+ANON_SORTED=$(printf '%s' "$ANON_BODY" | jq -cS '.items | sort_by(.id)')
 [ "$AUTH_SORTED" = "$ANON_SORTED" ] || cv_fail "expected authenticated catalog to equal anonymous catalog got differing payloads" $LINENO
 KEYS=$(printf '%s' "$AUTH_BODY" | jq -c 'keys')
-[ "$KEYS" = '["products"]' ] || cv_fail "expected only a products key (no personalization) got $KEYS" $LINENO
+[ "$KEYS" = '["items"]' ] || cv_fail "expected only an items key (no personalization) got $KEYS" $LINENO
 
 # Cleanup
 cv_step Cleanup "no delete endpoint exists; data lives in the app's in-memory store and is reset with the stack" $LINENO

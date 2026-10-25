@@ -17,13 +17,13 @@ cv_step When "anonymous client requests GET /products without any Authorization 
 cv_http GET /products
 
 # Then
-cv_step Then "response is 200 with a products array containing both products with full details" $LINENO
+cv_step Then "response is 200 with an items array containing both products with full details" $LINENO
 [ "$CV_HTTP_STATUS" = "200" ] || cv_fail "expected HTTP 200 got $CV_HTTP_STATUS" $LINENO
-TYPE=$(printf '%s' "$CV_HTTP_BODY" | jq -r '.products | type' 2>/dev/null || echo invalid)
-[ "$TYPE" = "array" ] || cv_fail "expected .products to be an array got $TYPE" $LINENO
+TYPE=$(printf '%s' "$CV_HTTP_BODY" | jq -r '.items | type' 2>/dev/null || echo invalid)
+[ "$TYPE" = "array" ] || cv_fail "expected .items to be an array got $TYPE" $LINENO
 for pair in "$P1_ID|$P1_JSON" "$P2_ID|$P2_JSON"; do
   PID=${pair%%|*}; PJSON=${pair#*|}
-  GOT=$(printf '%s' "$CV_HTTP_BODY" | jq -c --arg id "$PID" '[.products[] | select(.id==$id)]')
+  GOT=$(printf '%s' "$CV_HTTP_BODY" | jq -c --arg id "$PID" '[.items[] | select(.id==$id)]')
   CNT=$(printf '%s' "$GOT" | jq 'length')
   [ "$CNT" = "1" ] || cv_fail "expected product $PID exactly once in catalog got $CNT" $LINENO
   SAME=$(jq -n --argjson a "$(printf '%s' "$GOT" | jq '.[0]')" --argjson b "$PJSON" \

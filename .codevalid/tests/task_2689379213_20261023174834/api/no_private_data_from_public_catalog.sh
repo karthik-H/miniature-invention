@@ -20,10 +20,10 @@ cv_http GET /products
 cv_step Then "response is 200 and contains only public product fields, no user or secret data" $LINENO
 [ "$CV_HTTP_STATUS" = "200" ] || cv_fail "expected HTTP 200 got $CV_HTTP_STATUS" $LINENO
 KEYS=$(printf '%s' "$CV_HTTP_BODY" | jq -c 'keys' 2>/dev/null || echo invalid)
-[ "$KEYS" = '["products"]' ] || cv_fail "expected top-level keys [\"products\"] got $KEYS" $LINENO
-FOUND=$(printf '%s' "$CV_HTTP_BODY" | jq --arg id "$P_ID" '[.products[] | select(.id==$id)] | length')
+[ "$KEYS" = '["items"]' ] || cv_fail "expected top-level keys [\"items\"] got $KEYS" $LINENO
+FOUND=$(printf '%s' "$CV_HTTP_BODY" | jq --arg id "$P_ID" '[.items[] | select(.id==$id)] | length')
 [ "$FOUND" = "1" ] || cv_fail "expected created product $P_ID in catalog got $FOUND" $LINENO
-EXTRA=$(printf '%s' "$CV_HTTP_BODY" | jq -c '[.products[] | keys[] | select(IN("id","name","description","priceCents","sku","createdAt")|not)] | unique')
+EXTRA=$(printf '%s' "$CV_HTTP_BODY" | jq -c '[.items[] | keys[] | select(IN("id","name","description","priceCents","sku","createdAt")|not)] | unique')
 [ "$EXTRA" = "[]" ] || cv_fail "expected only public product fields got extra keys $EXTRA" $LINENO
 SENS=$(printf '%s' "$CV_HTTP_BODY" | jq -c '[.. | objects | keys[] | select(test("password|hash|token|email|user|owner|secret";"i"))] | unique')
 [ "$SENS" = "[]" ] || cv_fail "expected no sensitive keys got $SENS" $LINENO
